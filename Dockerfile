@@ -27,16 +27,18 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/src/generated ./src/generated
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/tsx ./node_modules/tsx
-COPY --from=builder /app/node_modules/typescript ./node_modules/typescript
+COPY package.json package-lock.json ./
+
+USER root
+
+RUN npm ci --omit=dev && npm cache clean --force
+
 COPY --from=builder /app/entrypoint.sh ./
 RUN chmod +x entrypoint.sh
 
-EXPOSE 3000
+USER nextjs
 
+EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
