@@ -1,11 +1,13 @@
 #!/bin/sh
 set -e
 
+export PATH="/app/node_modules/.bin:$PATH"
+
 echo "Running Prisma migrations..."
-npx prisma migrate deploy
+prisma migrate deploy
 
 echo "Seeding database..."
-npx prisma db seed
+prisma db seed
 
 echo "Starting app..."
 exec node server.js
