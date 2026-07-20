@@ -93,6 +93,11 @@ export default function ClientesPage() {
       c.cedula.includes(busqueda);
     const coincideTipo = filtroTipo === "todos" || c.tipo_ingresos === filtroTipo;
     return coincideBusqueda && coincideTipo;
+  }).sort((a, b) => {
+    if (!a.fecha_vencimiento && !b.fecha_vencimiento) return 0;
+    if (!a.fecha_vencimiento) return 1;
+    if (!b.fecha_vencimiento) return -1;
+    return new Date(a.fecha_vencimiento).getTime() - new Date(b.fecha_vencimiento).getTime();
   });
 
   return (
