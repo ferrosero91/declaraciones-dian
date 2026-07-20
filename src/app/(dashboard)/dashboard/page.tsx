@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  AlertTriangle, CheckCircle, Clock, Send, Users
+  AlertTriangle, CheckCircle, Clock, Send, Users, FileText
 } from "lucide-react";
 import EnviarRecordatorio from "@/components/EnviarRecordatorio";
 import { formatFechaLocal } from "@/lib/format";
@@ -13,7 +13,7 @@ interface ClienteColor {
   nombre_completo: string;
   cedula: string;
   tipo_ingresos: string;
-  completado: boolean;
+  estado_declaracion: string;
   color: string;
   fecha_vencimiento: string | null;
   envios_hoy: boolean;
@@ -26,7 +26,9 @@ interface Stats {
   proximos: number;
   vigilar: number;
   tranquilos: number;
-  completados: number;
+  pendientes: number;
+  enProceso: number;
+  elaboradas: number;
   pendientesContactarHoy: number;
   enviosHoy: number;
   enviosTotal: number;
@@ -73,62 +75,79 @@ export default function DashboardPage() {
       <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Dashboard</h2>
 
       {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6 sm:mb-8">
-          <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <p className="text-xs sm:text-sm text-gray-500">Total</p>
-              <Users className="w-4 h-4 text-gray-400" />
+        <>
+          {/* Stats de declaraciones */}
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200 text-center">
+              <p className="text-2xl sm:text-3xl font-bold text-gray-700">{stats.pendientes}</p>
+              <p className="text-xs text-gray-500">Pendientes</p>
             </div>
-            <p className="text-2xl sm:text-3xl font-bold text-gray-900">{stats.total}</p>
-          </div>
-          <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <p className="text-xs sm:text-sm text-gray-500">Vencidos</p>
-              <AlertTriangle className="w-4 h-4 text-red-500" />
+            <div className="bg-white rounded-lg p-3 sm:p-4 border border-amber-200 text-center">
+              <p className="text-2xl sm:text-3xl font-bold text-amber-600">{stats.enProceso}</p>
+              <p className="text-xs text-gray-500">En proceso</p>
             </div>
-            <p className="text-2xl sm:text-3xl font-bold" style={{ color: "#DC2626" }}>{stats.vencidos}</p>
-          </div>
-          <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <p className="text-xs sm:text-sm text-gray-500">Urgentes</p>
-              <Clock className="w-4 h-4 text-orange-500" />
+            <div className="bg-white rounded-lg p-3 sm:p-4 border border-emerald-200 text-center">
+              <p className="text-2xl sm:text-3xl font-bold text-emerald-600">{stats.elaboradas}</p>
+              <p className="text-xs text-gray-500">Elaboradas</p>
             </div>
-            <p className="text-2xl sm:text-3xl font-bold" style={{ color: "#EA580C" }}>{stats.urgentes}</p>
           </div>
-          <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <p className="text-xs sm:text-sm text-gray-500">Pendientes Hoy</p>
-              <Send className="w-4 h-4 text-purple-500" />
-            </div>
-            <p className="text-2xl sm:text-3xl font-bold" style={{ color: "#7C3AED" }}>{stats.pendientesContactarHoy}</p>
-          </div>
-          <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200 col-span-2 sm:col-span-3 lg:col-span-1">
-            <div className="flex items-center justify-between">
-              <p className="text-xs sm:text-sm text-gray-500">Enviados Hoy</p>
-              <CheckCircle className="w-4 h-4 text-green-500" />
-            </div>
-            <p className="text-2xl sm:text-3xl font-bold" style={{ color: "#16A34A" }}>{stats.enviosHoy}</p>
-            <p className="text-xs text-gray-400 mt-1">Total: {stats.enviosTotal}</p>
-          </div>
-        </div>
-      )}
 
-      {stats && (
-        <div className="flex flex-wrap gap-2 sm:gap-3 mb-6 sm:mb-8">
-          {[
-            { label: "Vencidos", count: stats.vencidos, color: "#DC2626" },
-            { label: "Urgentes", count: stats.urgentes, color: "#EA580C" },
-            { label: "Proximos", count: stats.proximos, color: "#D97706" },
-            { label: "Vigilar", count: stats.vigilar, color: "#2563EB" },
-            { label: "Tranquilos", count: stats.tranquilos, color: "#16A34A" },
-            { label: "Completados", count: stats.completados, color: "#9CA3AF" },
-          ].map((item) => (
-            <div key={item.label} className="flex items-center px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white border border-gray-200">
-              <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full mr-1.5 sm:mr-2" style={{ backgroundColor: item.color }} />
-              <span className="text-xs sm:text-sm text-gray-600">{item.label}: <strong>{item.count}</strong></span>
+          {/* Stats de urgencia */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6 sm:mb-8">
+            <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
+              <div className="flex items-center justify-between">
+                <p className="text-xs sm:text-sm text-gray-500">Total</p>
+                <Users className="w-4 h-4 text-gray-400" />
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-gray-900">{stats.total}</p>
             </div>
-          ))}
-        </div>
+            <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
+              <div className="flex items-center justify-between">
+                <p className="text-xs sm:text-sm text-gray-500">Vencidos</p>
+                <AlertTriangle className="w-4 h-4 text-red-500" />
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold" style={{ color: "#DC2626" }}>{stats.vencidos}</p>
+            </div>
+            <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
+              <div className="flex items-center justify-between">
+                <p className="text-xs sm:text-sm text-gray-500">Urgentes</p>
+                <Clock className="w-4 h-4 text-orange-500" />
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold" style={{ color: "#EA580C" }}>{stats.urgentes}</p>
+            </div>
+            <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
+              <div className="flex items-center justify-between">
+                <p className="text-xs sm:text-sm text-gray-500">Pendientes Hoy</p>
+                <Send className="w-4 h-4 text-purple-500" />
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold" style={{ color: "#7C3AED" }}>{stats.pendientesContactarHoy}</p>
+            </div>
+            <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200 col-span-2 sm:col-span-3 lg:col-span-1">
+              <div className="flex items-center justify-between">
+                <p className="text-xs sm:text-sm text-gray-500">Enviados Hoy</p>
+                <CheckCircle className="w-4 h-4 text-green-500" />
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold" style={{ color: "#16A34A" }}>{stats.enviosHoy}</p>
+              <p className="text-xs text-gray-400 mt-1">Total: {stats.enviosTotal}</p>
+            </div>
+          </div>
+
+          {/* Leyenda de urgencia */}
+          <div className="flex flex-wrap gap-2 sm:gap-3 mb-6 sm:mb-8">
+            {[
+              { label: "Vencidos", count: stats.vencidos, color: "#DC2626" },
+              { label: "Urgentes", count: stats.urgentes, color: "#EA580C" },
+              { label: "Proximos", count: stats.proximos, color: "#D97706" },
+              { label: "Vigilar", count: stats.vigilar, color: "#2563EB" },
+              { label: "Tranquilos", count: stats.tranquilos, color: "#16A34A" },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white border border-gray-200">
+                <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full mr-1.5 sm:mr-2" style={{ backgroundColor: item.color }} />
+                <span className="text-xs sm:text-sm text-gray-600">{item.label}: <strong>{item.count}</strong></span>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       <div className="bg-white rounded-lg border border-gray-200">
@@ -138,7 +157,7 @@ export default function DashboardPage() {
         </div>
         <div className="divide-y divide-gray-200">
           {clientes
-            .filter((c) => c.color !== "completado" && c.color !== "tranquilo")
+            .filter((c) => c.estado_declaracion !== "elaborada" && c.color !== "tranquilo")
             .slice(0, 10)
             .map((cliente) => (
               <div key={cliente.id} className="p-3 sm:p-4 hover:bg-gray-50">
@@ -184,7 +203,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             ))}
-          {clientes.filter((c) => c.color !== "completado" && c.color !== "tranquilo").length === 0 && (
+          {clientes.filter((c) => c.estado_declaracion !== "elaborada" && c.color !== "tranquilo").length === 0 && (
             <div className="p-8 text-center text-gray-500">
               <CheckCircle className="w-12 h-12 mx-auto mb-3 text-green-400" />
               <p>No hay clientes con vencimientos proximos</p>

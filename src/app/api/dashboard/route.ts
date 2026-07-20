@@ -66,7 +66,7 @@ export async function GET() {
       });
 
       let color = "tranquilo";
-      if (cliente.completado) {
+      if (cliente.estado_declaracion === "elaborada") {
         color = "completado";
       } else if (vencimiento) {
         color = calcularColorUrgenciaPura(vencimiento.fecha_vencimiento, umbrales);
@@ -77,7 +77,7 @@ export async function GET() {
         nombre_completo: cliente.nombre_completo,
         cedula: cliente.cedula,
         tipo_ingresos: cliente.tipo_ingresos,
-        completado: cliente.completado,
+        estado_declaracion: cliente.estado_declaracion,
         color,
         fecha_vencimiento: vencimiento?.fecha_vencimiento?.toISOString() || null,
         envios_hoy: cliente.envios.length > 0,
@@ -103,7 +103,9 @@ export async function GET() {
     proximos: clientesConColor.filter((c) => c.color === "proximo").length,
     vigilar: clientesConColor.filter((c) => c.color === "vigilar").length,
     tranquilos: clientesConColor.filter((c) => c.color === "tranquilo").length,
-    completados: clientesConColor.filter((c) => c.color === "completado").length,
+    pendientes: clientesConColor.filter((c) => c.estado_declaracion === "pendiente").length,
+    enProceso: clientesConColor.filter((c) => c.estado_declaracion === "en_proceso").length,
+    elaboradas: clientesConColor.filter((c) => c.estado_declaracion === "elaborada").length,
     pendientesContactarHoy: clientesConColor.filter(
       (c) => !c.envios_hoy && ["vencido", "urgente", "proximo"].includes(c.color)
     ).length,

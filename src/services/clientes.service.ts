@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { calcularColorUrgenciaPura } from "@/lib/urgencia";
-import { CalendarioVencimiento } from "@/generated/prisma";
+
+const ESTADOS顺序 = ["pendiente", "en_proceso", "elaborada"] as const;
+type EstadoDeclaracion = typeof ESTADOS顺序[number];
 
 export async function obtenerClientesPorContador(contadorId: string) {
   return prisma.cliente.findMany({
@@ -35,13 +37,19 @@ export async function actualizarCliente(
     celular_whatsapp?: string;
     tipo_ingresos?: string;
     activo?: boolean;
-    completado?: boolean;
+    estado_declaracion?: string;
     notas?: string;
   }
 ) {
+  const updateData: Record<string, unknown> = { ...data };
+  if (data.estado_declaracion === "elaborada") {
+    updateData.fecha_completado = new Date();
+  } else if (data.estado_declaracion) {
+    updateData.fecha_completado = null;
+  }
   return prisma.cliente.updateMany({
     where: { id, contador_id: contadorId },
-    data,
+    data: updateData,
   });
 }
 
@@ -51,15 +59,26 @@ export async function eliminarCliente(id: string, contadorId: string) {
   });
 }
 
-export async function toggleCompletado(id: string, contadorId: string) {
+export async function ciclarEstado(id: string, contadorId: string) {
   const cliente = await prisma.cliente.findFirst({
     where: { id, contador_id: contadorId },
   });
   if (!cliente) throw new Error("Cliente no encontrado");
 
+  const actual = cliente.estado_declaracion as EstadoDeclaracion;
+  const indiceActual = ESTADOS顺序.indexOf(actual);
+  const siguiente = ESTADOS顺序[(indiceActual + 1) % ESTADOS顺序.length];
+
+  const updateData: Record<string, unknown> = { estado_declaracion: siguiente };
+  if (siguiente === "elaborada") {
+    updateData.fecha_completado = new Date();
+  } else {
+    updateData.fecha_completado = null;
+  }
+
   return prisma.cliente.updateMany({
     where: { id, contador_id: contadorId },
-    data: { completado: !cliente.completado },
+    data: updateData,
   });
 }
 
@@ -70,7 +89,8 @@ export type ClienteConVencimiento = {
   celular_whatsapp: string | null;
   tipo_ingresos: string;
   activo: boolean;
-  completado: boolean;
+  estado_declaracion: string;
+  fecha_completado: Date | null;
   notas: string | null;
   fecha_vencimiento: string | null;
   color_urgencia: string;
@@ -106,7 +126,7 @@ export async function obtenerClientesConVencimiento(
 
   return Promise.all(
     clientes.map(async (cliente) => {
-      if (cliente.completado) {
+      if (cliente.estado_declaracion === "elaborada") {
         return {
           ...cliente,
           fecha_vencimiento: null,

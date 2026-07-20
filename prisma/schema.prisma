@@ -93,17 +93,18 @@ model ConfiguracionContador {
 // ==================== Clientes ====================
 
 model Cliente {
-  id                String   @id @default(cuid())
-  contador_id       String
-  nombre_completo   String
-  cedula            String
-  celular_whatsapp  String?
-  tipo_ingresos     String   // empleado, independiente, pensionado, mixto, otro
-  activo            Boolean  @default(true)
-  completado        Boolean  @default(false)  // para el color gris
-  notas             String?
-  created_at        DateTime @default(now())
-  updated_at        DateTime @updatedAt
+  id                   String    @id @default(cuid())
+  contador_id          String
+  nombre_completo      String
+  cedula               String
+  celular_whatsapp     String?
+  tipo_ingresos        String    // empleado, independiente, pensionado, mixto, otro
+  activo               Boolean   @default(true)
+  estado_declaracion   String    @default("pendiente") // pendiente, en_proceso, elaborada
+  fecha_completado     DateTime?
+  notas                String?
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
 
   contador Contador @relation(fields: [contador_id], references: [id], onDelete: Cascade)
   envios   EnvioLog[]

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { obtenerClientesConVencimiento, crearCliente, actualizarCliente, eliminarCliente } from "@/services/clientes.service";
+import { obtenerClientesConVencimiento, crearCliente, actualizarCliente, eliminarCliente, ciclarEstado } from "@/services/clientes.service";
 
 export async function GET() {
   const session = await auth();
@@ -34,9 +34,13 @@ export async function PUT(request: Request) {
   }
 
   const body = await request.json();
-  const { id, ...data } = body;
+  const { id, accion, ...data } = body;
 
-  await actualizarCliente(id, session.user.id, data);
+  if (accion === "ciclar_estado") {
+    await ciclarEstado(id, session.user.id);
+  } else {
+    await actualizarCliente(id, session.user.id, data);
+  }
   return NextResponse.json({ success: true });
 }
 
