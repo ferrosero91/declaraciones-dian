@@ -23,7 +23,7 @@ export default function Hero() {
             </p>
           </div>
 
-          <div className="flex-shrink-0 hidden lg:block">
+          <div className="shrink-0 hidden lg:block">
             <div className="w-64 h-64 bg-white/10 backdrop-blur-sm rounded-3xl flex items-center justify-center border border-white/20">
               <FileText className="w-28 h-28 text-emerald-300" strokeWidth={1.2} />
             </div>

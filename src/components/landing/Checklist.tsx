@@ -111,7 +111,7 @@ export default function Checklist() {
                 className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200 hover:shadow-md transition-all"
               >
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[#0F5C6E]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[#0F5C6E]/10 rounded-lg flex items-center justify-center shrink-0">
                     <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-[#0F5C6E]" />
                   </div>
                   <h3 className="font-semibold text-gray-900 text-xs sm:text-sm">{cat.titulo}</h3>
@@ -119,7 +119,7 @@ export default function Checklist() {
                 <ul className="space-y-1.5">
                   {cat.documentos.map((doc) => (
                     <li key={doc} className="flex items-start gap-2 text-xs sm:text-sm text-gray-600">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#0F5C6E] mt-1.5 flex-shrink-0" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#0F5C6E] mt-1.5 shrink-0" />
                       {doc}
                     </li>
                   ))}
