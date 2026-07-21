@@ -72,6 +72,22 @@ export async function cargarCalendario(
   });
 }
 
+export async function actualizarVencimiento(
+  id: string,
+  fechaVencimiento: Date
+) {
+  return prisma.calendarioVencimiento.update({
+    where: { id },
+    data: { fecha_vencimiento: fechaVencimiento },
+  });
+}
+
+export async function eliminarVencimiento(id: string) {
+  return prisma.calendarioVencimiento.delete({
+    where: { id },
+  });
+}
+
 export async function obtenerHistorialCargas(contadorId: string) {
   return prisma.cargaCalendario.findMany({
     where: {

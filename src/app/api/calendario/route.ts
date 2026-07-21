@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { obtenerTodosVencimientos, cargarCalendario, obtenerHistorialCargas } from "@/services/calendario.service";
+import {
+  obtenerTodosVencimientos,
+  cargarCalendario,
+  obtenerHistorialCargas,
+  actualizarVencimiento,
+  eliminarVencimiento,
+} from "@/services/calendario.service";
 import { esquemaCalendarioCompleto, validarSolapamientos } from "@/lib/zod/calendario";
 
 export async function GET(request: Request) {
@@ -64,4 +70,38 @@ export async function POST(request: Request) {
   );
 
   return NextResponse.json(resultado);
+}
+
+export async function PUT(request: Request) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  const body = await request.json();
+  const { id, fecha_vencimiento } = body;
+
+  if (!id || !fecha_vencimiento) {
+    return NextResponse.json({ error: "Faltan campos: id, fecha_vencimiento" }, { status: 400 });
+  }
+
+  const actualizado = await actualizarVencimiento(id, new Date(fecha_vencimiento));
+  return NextResponse.json(actualizado);
+}
+
+export async function DELETE(request: Request) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+
+  if (!id) {
+    return NextResponse.json({ error: "Falta parámetro id" }, { status: 400 });
+  }
+
+  await eliminarVencimiento(id);
+  return NextResponse.json({ ok: true });
 }

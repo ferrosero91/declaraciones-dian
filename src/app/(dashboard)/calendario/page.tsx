@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Upload, Plus, Trash2 } from "lucide-react";
+import { Upload, Plus, Trash2, Download, Pencil, X, Check, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
 
 interface Vencimiento {
@@ -32,6 +32,9 @@ export default function CalendarioPage() {
   const [vistaPrevia, setVistaPrevia] = useState<Vencimiento[]>([]);
   const [errores, setErrores] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [fechaEditada, setFechaEditada] = useState("");
+  const [eliminandoId, setEliminandoId] = useState<string | null>(null);
 
   useEffect(() => {
     cargarDatos();
@@ -74,6 +77,84 @@ export default function CalendarioPage() {
   function formatFecha(fecha: string): string {
     const parts = fecha.split("T")[0].split("-");
     return `${parseInt(parts[2])}/${parseInt(parts[1])}/${parts[0]}`;
+  }
+
+  function fechaParaInput(fecha: string): string {
+    return fecha.split("T")[0];
+  }
+
+  async function guardarFecha(vencimiento: Vencimiento) {
+    if (fechaEditada === vencimiento.fecha_vencimiento) {
+      setEditandoId(null);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/calendario", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: vencimiento.id,
+          fecha_vencimiento: fechaEditada,
+        }),
+      });
+
+      if (res.ok) {
+        setVencimientos((prev) =>
+          prev.map((v) =>
+            v.id === vencimiento.id ? { ...v, fecha_vencimiento: fechaEditada } : v
+          )
+        );
+        setEditandoId(null);
+      }
+    } catch (error) {
+      console.error("Error guardando:", error);
+    }
+  }
+
+  async function eliminarFecha(vencimiento: Vencimiento) {
+    if (eliminandoId !== vencimiento.id) {
+      setEliminandoId(vencimiento.id);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/calendario?id=${vencimiento.id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setVencimientos((prev) => prev.filter((v) => v.id !== vencimiento.id));
+        setEliminandoId(null);
+      }
+    } catch (error) {
+      console.error("Error eliminando:", error);
+    }
+  }
+
+  function descargarPlantilla() {
+    const filas: Record<string, unknown>[] = [];
+    for (let i = 0; i <= 99; i += 2) {
+      filas.push({
+        anio_gravable: anioSeleccionado || new Date().getFullYear(),
+        terminacion_inicio: i,
+        terminacion_fin: i + 1,
+        fecha_vencimiento: "",
+      });
+    }
+
+    const ws = XLSX.utils.json_to_sheet(filas);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Calendario");
+
+    ws["!cols"] = [
+      { wch: 15 },
+      { wch: 20 },
+      { wch: 15 },
+      { wch: 18 },
+    ];
+
+    XLSX.writeFile(wb, `plantilla_calendario_${anioSeleccionado || "2026"}.xlsx`);
   }
 
   function procesarExcel(e: React.ChangeEvent<HTMLInputElement>) {
@@ -161,161 +242,294 @@ export default function CalendarioPage() {
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Calendario de Vencimientos</h2>
-          <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
-            <select
-              value={anioSeleccionado ?? ""}
-              onChange={(e) => setAnioSeleccionado(parseInt(e.target.value))}
-              className="flex-1 sm:flex-initial px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0F5C6E] text-sm"
-            >
-              {aniosDisponibles.length === 0 && (
-                <>
-                  <option value={2025}>2025</option>
-                  <option value={2026}>2026</option>
-                  <option value={2027}>2027</option>
-                </>
-              )}
-              {aniosDisponibles.map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-            <label className="btn-primary flex items-center cursor-pointer">
-              <Upload className="w-4 h-4 mr-2" />
-              Cargar Excel
-              <input
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={procesarExcel}
-                className="hidden"
-              />
-            </label>
-          </div>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Calendario de Vencimientos</h2>
+        <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
+          <select
+            value={anioSeleccionado ?? ""}
+            onChange={(e) => setAnioSeleccionado(parseInt(e.target.value))}
+            className="flex-1 sm:flex-initial px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0F5C6E] text-sm"
+          >
+            {aniosDisponibles.length === 0 && (
+              <>
+                <option value={2025}>2025</option>
+                <option value={2026}>2026</option>
+                <option value={2027}>2027</option>
+              </>
+            )}
+            {aniosDisponibles.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+          <button
+            onClick={descargarPlantilla}
+            className="btn-secondary flex items-center gap-2 text-sm whitespace-nowrap"
+            title="Descargar plantilla Excel"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span className="hidden sm:inline">Plantilla</span>
+          </button>
+          <label className="btn-primary flex items-center cursor-pointer">
+            <Upload className="w-4 h-4 mr-2" />
+            Cargar Excel
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={procesarExcel}
+              className="hidden"
+            />
+          </label>
         </div>
+      </div>
 
-        {/* Tabla de vencimientos - desktop */}
-        <div className="hidden md:block bg-white rounded-lg border border-gray-200 overflow-hidden mb-8">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Terminacion</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Fecha Vencimiento</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Origen</th>
+      {/* Instrucciones */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-6">
+        <p className="text-sm text-blue-800 font-medium mb-1">Formato del archivo Excel:</p>
+        <p className="text-xs text-blue-700">
+          Columnas: <strong>anio_gravable</strong>, <strong>terminacion_inicio</strong> (0-99), <strong>terminacion_fin</strong> (0-99), <strong>fecha_vencimiento</strong> (YYYY-MM-DD o serial Excel).
+          Descargue la plantilla para ver el formato correcto.
+        </p>
+      </div>
+
+      {/* Tabla de vencimientos - desktop */}
+      <div className="hidden md:block bg-white rounded-lg border border-gray-200 overflow-hidden mb-8">
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Terminacion</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Fecha Vencimiento</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Origen</th>
+              <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {vencimientos.map((v) => (
+              <tr key={v.id} className="hover:bg-gray-50">
+                <td className="px-4 py-3 text-gray-900">
+                  {v.terminacion_inicio.toString().padStart(2, "0")} - {v.terminacion_fin.toString().padStart(2, "0")}
+                </td>
+                <td className="px-4 py-3">
+                  {editandoId === v.id ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="date"
+                        value={fechaParaInput(fechaEditada)}
+                        onChange={(e) => setFechaEditada(e.target.value)}
+                        className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-[#0F5C6E]"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") guardarFecha(v);
+                          if (e.key === "Escape") setEditandoId(null);
+                        }}
+                      />
+                      <button
+                        onClick={() => guardarFecha(v)}
+                        className="text-green-600 hover:text-green-800"
+                        title="Guardar"
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setEditandoId(null)}
+                        className="text-gray-400 hover:text-gray-600"
+                        title="Cancelar"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-gray-900">{formatFecha(v.fecha_vencimiento)}</span>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  <span className={`px-2 py-1 text-xs rounded-full ${v.origen === "excel" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"}`}>
+                    {v.origen}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  {editandoId === v.id ? null : (
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setEditandoId(v.id);
+                          setFechaEditada(v.fecha_vencimiento);
+                        }}
+                        className="text-gray-400 hover:text-[#0F5C6E]"
+                        title="Editar fecha"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => eliminarFecha(v)}
+                        className={`${
+                          eliminandoId === v.id
+                            ? "text-red-600 hover:text-red-800 animate-pulse"
+                            : "text-gray-400 hover:text-red-600"
+                        }`}
+                        title={eliminandoId === v.id ? "Clic para confirmar" : "Eliminar"}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {vencimientos.map((v) => (
-                <tr key={v.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-gray-900">{v.terminacion_inicio.toString().padStart(2, "0")} - {v.terminacion_fin.toString().padStart(2, "0")}</td>
-                  <td className="px-4 py-3 text-gray-900">{formatFecha(v.fecha_vencimiento)}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-1 text-xs rounded-full ${v.origen === "excel" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"}`}>
-                      {v.origen}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-        {/* Vencimientos - mobile cards */}
-        <div className="md:hidden grid grid-cols-2 sm:grid-cols-3 gap-2 mb-8">
-          {vencimientos.map((v) => (
-            <div key={v.id} className="bg-white rounded-lg border border-gray-200 p-3">
-              <p className="text-xs text-gray-500 mb-1">{v.terminacion_inicio.toString().padStart(2, "0")} - {v.terminacion_fin.toString().padStart(2, "0")}</p>
-              <p className="font-medium text-gray-900 text-sm">{formatFecha(v.fecha_vencimiento)}</p>
+      {/* Vencimientos - mobile cards */}
+      <div className="md:hidden grid grid-cols-1 gap-3 mb-8">
+        {vencimientos.map((v) => (
+          <div key={v.id} className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-gray-900">
+                {v.terminacion_inicio.toString().padStart(2, "0")} - {v.terminacion_fin.toString().padStart(2, "0")}
+              </p>
+              <span className={`px-2 py-1 text-xs rounded-full ${v.origen === "excel" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"}`}>
+                {v.origen}
+              </span>
+            </div>
+            {editandoId === v.id ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={fechaParaInput(fechaEditada)}
+                  onChange={(e) => setFechaEditada(e.target.value)}
+                  className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-[#0F5C6E]"
+                  autoFocus
+                />
+                <button
+                  onClick={() => guardarFecha(v)}
+                  className="text-green-600 hover:text-green-800 p-1"
+                >
+                  <Check className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setEditandoId(null)}
+                  className="text-gray-400 hover:text-gray-600 p-1"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <p className="text-gray-600 text-sm">{formatFecha(v.fecha_vencimiento)}</p>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      setEditandoId(v.id);
+                      setFechaEditada(v.fecha_vencimiento);
+                    }}
+                    className="text-gray-400 hover:text-[#0F5C6E]"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => eliminarFecha(v)}
+                    className={`${
+                      eliminandoId === v.id
+                        ? "text-red-600 animate-pulse"
+                        : "text-gray-400 hover:text-red-600"
+                    }`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Historial de cargas */}
+      <div className="bg-white rounded-lg border border-gray-200">
+        <div className="p-3 sm:p-4 border-b border-gray-200">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900">Historial de cargas</h3>
+        </div>
+        <div className="divide-y divide-gray-200">
+          {cargas.map((c) => (
+            <div key={c.id} className="p-3 sm:p-4 flex items-center justify-between">
+              <div className="min-w-0">
+                <p className="font-medium text-gray-900 text-sm truncate">{c.nombre_archivo}</p>
+                <p className="text-xs sm:text-sm text-gray-500">
+                  {new Date(c.importado_en).toLocaleDateString("es-CO")} - {c.filas_importadas} filas importadas
+                </p>
+              </div>
+              <span className={`px-2 py-1 text-xs rounded-full ${
+                c.estado === "procesado" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+              }`}>
+                {c.estado}
+              </span>
             </div>
           ))}
         </div>
+      </div>
 
-        {/* Historial de cargas */}
-        <div className="bg-white rounded-lg border border-gray-200">
-          <div className="p-3 sm:p-4 border-b border-gray-200">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Historial de cargas</h3>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {cargas.map((c) => (
-              <div key={c.id} className="p-3 sm:p-4 flex items-center justify-between">
-                <div className="min-w-0">
-                  <p className="font-medium text-gray-900 text-sm truncate">{c.nombre_archivo}</p>
-                  <p className="text-xs sm:text-sm text-gray-500">
-                    {new Date(c.importado_en).toLocaleDateString("es-CO")} - {c.filas_importadas} filas importadas
-                  </p>
-                </div>
-                <span className={`px-2 py-1 text-xs rounded-full ${
-                  c.estado === "procesado" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                }`}>
-                  {c.estado}
-                </span>
+      {/* Modal de vista previa */}
+      {showUpload && (
+        <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-white rounded-t-xl sm:rounded-lg p-5 sm:p-6 w-full sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+            <h3 className="text-lg font-bold mb-4">Vista previa de carga</h3>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-600">
+                Filas válidas: <span className="font-bold text-green-600">{vistaPrevia.length}</span>
+              </p>
+              <p className="text-sm text-gray-600">
+                Filas con error: <span className="font-bold text-red-600">{errores.length}</span>
+              </p>
+            </div>
+
+            {errores.length > 0 && (
+              <div className="mb-4 p-3 bg-red-50 rounded-md">
+                <p className="text-sm font-medium text-red-800 mb-2">Errores encontrados:</p>
+                <ul className="text-sm text-red-700 list-disc list-inside">
+                  {errores.map((e, i) => (
+                    <li key={i}>{e}</li>
+                  ))}
+                </ul>
               </div>
-            ))}
-          </div>
-        </div>
+            )}
 
-        {/* Modal de vista previa */}
-        {showUpload && (
-          <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-            <div className="bg-white rounded-t-xl sm:rounded-lg p-5 sm:p-6 w-full sm:max-w-2xl max-h-[85vh] overflow-y-auto">
-              <h3 className="text-lg font-bold mb-4">Vista previa de carga</h3>
-              
-              <div className="mb-4">
-                <p className="text-sm text-gray-600">
-                  Filas válidas: <span className="font-bold text-green-600">{vistaPrevia.length}</span>
-                </p>
-                <p className="text-sm text-gray-600">
-                  Filas con error: <span className="font-bold text-red-600">{errores.length}</span>
-                </p>
-              </div>
-
-              {errores.length > 0 && (
-                <div className="mb-4 p-3 bg-red-50 rounded-md">
-                  <p className="text-sm font-medium text-red-800 mb-2">Errores encontrados:</p>
-                  <ul className="text-sm text-red-700 list-disc list-inside">
-                    {errores.map((e, i) => (
-                      <li key={i}>{e}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              <div className="max-h-60 overflow-y-auto mb-4">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Terminación</th>
-                      <th className="px-3 py-2 text-left">Fecha</th>
+            <div className="max-h-60 overflow-y-auto mb-4">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Terminación</th>
+                    <th className="px-3 py-2 text-left">Fecha</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {vistaPrevia.slice(0, 20).map((v, i) => (
+                    <tr key={i}>
+                      <td className="px-3 py-2">{v.terminacion_inicio}-{v.terminacion_fin}</td>
+                      <td className="px-3 py-2">{formatFecha(v.fecha_vencimiento)}</td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {vistaPrevia.slice(0, 20).map((v, i) => (
-                      <tr key={i}>
-                        <td className="px-3 py-2">{v.terminacion_inicio}-{v.terminacion_fin}</td>
-                        <td className="px-3 py-2">{formatFecha(v.fecha_vencimiento)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
-                <button
-                  onClick={() => { setShowUpload(false); setVistaPrevia([]); setErrores([]); }}
-                  className="btn-secondary w-full sm:w-auto"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={confirmarCarga}
-                  disabled={loading || vistaPrevia.length === 0}
-                  className="btn-primary disabled:opacity-50 w-full sm:w-auto"
-                >
-                  {loading ? "Cargando..." : "Confirmar carga"}
-                </button>
-              </div>
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
+              <button
+                onClick={() => { setShowUpload(false); setVistaPrevia([]); setErrores([]); }}
+                className="btn-secondary w-full sm:w-auto"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarCarga}
+                disabled={loading || vistaPrevia.length === 0}
+                className="btn-primary disabled:opacity-50 w-full sm:w-auto"
+              >
+                {loading ? "Cargando..." : "Confirmar carga"}
+              </button>
             </div>
           </div>
-        )}
-      </main>
+        </div>
+      )}
+    </main>
   );
 }
