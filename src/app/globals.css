@@ -84,7 +84,7 @@ body {
 }
 
 /* Smooth scroll */
-html {
+html[data-scroll-behavior="smooth"] {
   scroll-behavior: smooth;
 }
 

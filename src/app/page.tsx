@@ -1,11 +1,23 @@
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+"use client";
 
-export default async function HomePage() {
-  const session = await auth();
-  if (session?.user) {
-    redirect("/dashboard");
-  } else {
-    redirect("/login");
-  }
+import LandingNav from "@/components/landing/LandingNav";
+import Hero from "@/components/landing/Hero";
+import Topes from "@/components/landing/Topes";
+import Checklist from "@/components/landing/Checklist";
+import UVT from "@/components/landing/UVT";
+import Recomendaciones from "@/components/landing/Recomendaciones";
+import Footer from "@/components/landing/Footer";
+
+export default function HomePage() {
+  return (
+    <>
+      <LandingNav />
+      <Hero />
+      <Topes />
+      <Checklist />
+      <UVT />
+      <Recomendaciones />
+      <Footer />
+    </>
+  );
 }

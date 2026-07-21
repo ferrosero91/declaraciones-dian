@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -40,12 +41,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold text-center mb-6" style={{ color: "#0F5C6E" }}>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-md p-6 sm:p-8 bg-white rounded-lg shadow-md">
+        <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#0F5C6E] mb-6">
+          <ArrowLeft className="w-4 h-4" /> Volver
+        </Link>
+        <h1 className="text-2xl font-bold text-center mb-2" style={{ color: "#0F5C6E" }}>
           GestionRenta
         </h1>
-        <p className="text-center text-gray-500 mb-8">Inicia sesión en tu cuenta</p>
+        <p className="text-center text-gray-500 mb-6">Inicia sesión en tu cuenta</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -54,6 +58,7 @@ export default function LoginPage() {
               type="email"
               name="email"
               required
+              autoComplete="email"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0F5C6E]"
               placeholder="tu@email.com"
             />
@@ -65,6 +70,7 @@ export default function LoginPage() {
               type="password"
               name="password"
               required
+              autoComplete="current-password"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0F5C6E]"
               placeholder="••••••••"
             />
